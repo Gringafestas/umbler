@@ -38,6 +38,7 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
+    // Envia resposta via API da Umbler
     await axios.post(
       'https://app-utalk.umbler.com/api/v1/messages/simplified/',
       {
@@ -55,7 +56,9 @@ app.post('/webhook', async (req, res) => {
     );
 
     console.log(`[Webhook] Resposta enviada para ${numero}: ${respostaTexto}`);
-    res.sendStatus(200);
+
+    // ✅ Resposta em JSON para a Umbler interpretar corretamente
+    res.status(200).json({ reply: respostaTexto });
 
   } catch (err) {
     console.error('[Webhook] Erro ao processar:', err.response?.data || err.message);
