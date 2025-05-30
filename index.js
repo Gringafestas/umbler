@@ -14,14 +14,13 @@ app.post('/webhook', async (req, res) => {
   try {
     console.log('[Webhook] Corpo recebido:', JSON.stringify(req.body, null, 2));
 
-    // Verifica se a mensagem foi enviada pelo cliente
-    const tipoMensagem = req.body?.Payload?.Content?.LastMessage?.Type;
+    const origemMensagem = req.body?.Payload?.Content?.LastMessage?.Source;
     const mensagem = req.body?.Payload?.Content?.LastMessage?.Content;
     const numero = req.body?.Payload?.Content?.Contact?.PhoneNumber;
 
-    // Ignora mensagens que não sejam do cliente
-    if (tipoMensagem !== 'incoming') {
-      console.log('[Webhook] Ignorando mensagem do tipo:', tipoMensagem);
+    // Só responde se a mensagem veio do contato (cliente)
+    if (origemMensagem !== 'Contact') {
+      console.log('[Webhook] Ignorando mensagem de origem:', origemMensagem);
       return res.status(200).json({ status: 'ignorado' });
     }
 
@@ -32,7 +31,7 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Mensagem recebida de ${numero}: ${mensagem}`);
 
-    // Chamada à API da OpenAI
+    // Chamada para o ChatGPT
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -50,7 +49,7 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
-    // Envio da resposta via Umbler
+    // Enviar resposta para o cliente via Umbler
     await axios.post(
       'https://app-utalk.umbler.com/api/v1/messages/simplified/',
       {
@@ -68,8 +67,6 @@ app.post('/webhook', async (req, res) => {
     );
 
     console.log(`[Webhook] Resposta enviada para ${numero}: ${respostaTexto}`);
-
-    // Retorno em JSON (esperado pela Umbler)
     res.status(200).json({ reply: respostaTexto });
 
   } catch (err) {
