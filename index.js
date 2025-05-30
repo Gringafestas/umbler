@@ -58,15 +58,15 @@ app.post('/webhook', async (req, res) => {
     let respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
     const comandos = [
-      { tag: 'ACAO:FLUXO_TEMAS', fluxo: 'mensagens rápidas → catálogo de temas' },
-      { tag: 'ACAO:FLUXO_LOCALIZACAO', fluxo: 'mensagens rápidas → localização' },
-      { tag: 'ACAO:FLUXO_QUALIFICADO', fluxo: 'mensagens rápidas → inserir tag qualificado' },
-      { tag: 'ACAO:FLUXO_FALAR_COM_HUMANO', fluxo: 'Fluxos de Sophia → Falar com humano' }
+      { tag: 'ACAO:FLUXO_TEMAS', fluxoId: 'aCDif5L3NfVDxDQp' },
+      { tag: 'ACAO:FLUXO_LOCALIZACAO', fluxoId: 'aCDqRkW3SQaixwLi' },
+      { tag: 'ACAO:FLUXO_QUALIFICADO', fluxoId: 'aCz2kgiE-iH2BzJ_' },
+      { tag: 'ACAO:FLUXO_FALAR_COM_HUMANO', fluxoId: 'aCC9voM7_-5mPtlP' }
     ];
 
     for (const cmd of comandos) {
       if (respostaTexto.includes(cmd.tag)) {
-        console.log(`[Webhook] Acionando fluxo: ${cmd.fluxo}`);
+        console.log(`[Webhook] Acionando fluxo ID: ${cmd.fluxoId}`);
 
         await axios.post(
           'https://app-utalk.umbler.com/api/v1/flows/start',
@@ -74,7 +74,7 @@ app.post('/webhook', async (req, res) => {
             ToPhone: numero,
             FromPhone: FROM_PHONE,
             OrganizationId: ORGANIZATION_ID,
-            FlowName: cmd.fluxo
+            FlowId: cmd.fluxoId
           },
           {
             headers: {
@@ -84,9 +84,7 @@ app.post('/webhook', async (req, res) => {
           }
         );
 
-        // Remove o comando da resposta antes de enviar para o cliente
         respostaTexto = respostaTexto.replace(`[${cmd.tag}]`, '').trim();
-
         break;
       }
     }
