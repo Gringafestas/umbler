@@ -14,8 +14,16 @@ app.post('/webhook', async (req, res) => {
   try {
     console.log('[Webhook] Corpo recebido:', JSON.stringify(req.body, null, 2));
 
+    // Verifica se a mensagem foi enviada pelo cliente
+    const tipoMensagem = req.body?.Payload?.Content?.LastMessage?.Type;
     const mensagem = req.body?.Payload?.Content?.LastMessage?.Content;
     const numero = req.body?.Payload?.Content?.Contact?.PhoneNumber;
+
+    // Ignora mensagens que não sejam do cliente
+    if (tipoMensagem !== 'incoming') {
+      console.log('[Webhook] Ignorando mensagem do tipo:', tipoMensagem);
+      return res.status(200).json({ status: 'ignorado' });
+    }
 
     if (!mensagem || !numero) {
       console.warn('[Webhook] Corpo inválido: mensagem ou número ausente');
@@ -24,7 +32,7 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Mensagem recebida de ${numero}: ${mensagem}`);
 
-    // Consulta ao ChatGPT
+    // Chamada à API da OpenAI
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -61,7 +69,7 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Resposta enviada para ${numero}: ${respostaTexto}`);
 
-    // Retorno esperado para a Umbler
+    // Retorno em JSON (esperado pela Umbler)
     res.status(200).json({ reply: respostaTexto });
 
   } catch (err) {
