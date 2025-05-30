@@ -9,6 +9,7 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const UMBLER_TOKEN = process.env.UMBLER_TOKEN;
 const ORGANIZATION_ID = process.env.ORGANIZATION_ID;
 const FROM_PHONE = process.env.FROM_PHONE;
+const SYSTEM_PROMPT = process.env.SYSTEM_PROMPT;
 
 app.post('/webhook', async (req, res) => {
   try {
@@ -37,7 +38,7 @@ app.post('/webhook', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: process.env.SYSTEM_PROMPT || 'Você é um assistente.'
+            content: SYSTEM_PROMPT
           },
           {
             role: 'user',
@@ -56,7 +57,6 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
-    // Verifica comandos especiais na resposta
     const comandos = [
       { tag: 'ACAO:FLUXO_TEMAS', fluxo: 'mensagens rápidas → catálogo de temas' },
       { tag: 'ACAO:FLUXO_LOCALIZACAO', fluxo: 'mensagens rápidas → localização' },
@@ -88,7 +88,6 @@ app.post('/webhook', async (req, res) => {
       }
     }
 
-    // Se nenhuma ação foi detectada, apenas envia a resposta normalmente
     await axios.post(
       'https://app-utalk.umbler.com/api/v1/messages/simplified/',
       {
