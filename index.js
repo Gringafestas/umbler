@@ -18,7 +18,6 @@ app.post('/webhook', async (req, res) => {
     const mensagem = req.body?.Payload?.Content?.LastMessage?.Content;
     const numero = req.body?.Payload?.Content?.Contact?.PhoneNumber;
 
-    // Só responde se a mensagem veio do contato (cliente)
     if (origemMensagem !== 'Contact') {
       console.log('[Webhook] Ignorando mensagem de origem:', origemMensagem);
       return res.status(200).json({ status: 'ignorado' });
@@ -31,12 +30,20 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Mensagem recebida de ${numero}: ${mensagem}`);
 
-    // Chamada para o ChatGPT
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
         model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: mensagem }],
+        messages: [
+          {
+            role: 'system',
+            content: process.env.SYSTEM_PROMPT || 'Você é um assistente.'
+          },
+          {
+            role: 'user',
+            content: mensagem
+          }
+        ],
         temperature: 0.7
       },
       {
@@ -49,7 +56,39 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
-    // Enviar resposta para o cliente via Umbler
+    // Verifica comandos especiais na resposta
+    const comandos = [
+      { tag: 'ACAO:FLUXO_TEMAS', fluxo: 'mensagens rápidas → catálogo de temas' },
+      { tag: 'ACAO:FLUXO_LOCALIZACAO', fluxo: 'mensagens rápidas → localização' },
+      { tag: 'ACAO:FLUXO_QUALIFICADO', fluxo: 'mensagens rápidas → inserir tag qualificado' },
+      { tag: 'ACAO:FLUXO_FALAR_COM_HUMANO', fluxo: 'Fluxos de Sophia → Falar com humano' }
+    ];
+
+    for (const cmd of comandos) {
+      if (respostaTexto.includes(cmd.tag)) {
+        console.log(`[Webhook] Acionando fluxo: ${cmd.fluxo}`);
+
+        await axios.post(
+          'https://app-utalk.umbler.com/api/v1/flows/start',
+          {
+            ToPhone: numero,
+            FromPhone: FROM_PHONE,
+            OrganizationId: ORGANIZATION_ID,
+            FlowName: cmd.fluxo
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${UMBLER_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        return res.status(200).json({ status: `fluxo ${cmd.fluxo} acionado` });
+      }
+    }
+
+    // Se nenhuma ação foi detectada, apenas envia a resposta normalmente
     await axios.post(
       'https://app-utalk.umbler.com/api/v1/messages/simplified/',
       {
