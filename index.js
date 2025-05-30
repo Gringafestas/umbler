@@ -55,7 +55,7 @@ app.post('/webhook', async (req, res) => {
       }
     );
 
-    const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
+    let respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
     const comandos = [
       { tag: 'ACAO:FLUXO_TEMAS', fluxo: 'mensagens rápidas → catálogo de temas' },
@@ -84,7 +84,10 @@ app.post('/webhook', async (req, res) => {
           }
         );
 
-        return res.status(200).json({ status: `fluxo ${cmd.fluxo} acionado` });
+        // Remove o comando da resposta antes de enviar para o cliente
+        respostaTexto = respostaTexto.replace(`[${cmd.tag}]`, '').trim();
+
+        break;
       }
     }
 
