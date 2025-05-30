@@ -12,12 +12,10 @@ const FROM_PHONE = process.env.FROM_PHONE;
 
 app.post('/webhook', async (req, res) => {
   try {
-    // Log completo da requisição recebida
     console.log('[Webhook] Corpo recebido:', JSON.stringify(req.body, null, 2));
 
-    // Tenta extrair a mensagem e o número
-    const mensagem = req.body?.chat?.message;
-    const numero = req.body?.contact?.number;
+    const mensagem = req.body?.Payload?.Content?.LastMessage?.Content;
+    const numero = req.body?.Payload?.Content?.Contact?.PhoneNumber;
 
     if (!mensagem || !numero) {
       console.warn('[Webhook] Corpo inválido: mensagem ou número ausente');
@@ -26,7 +24,7 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Mensagem recebida de ${numero}: ${mensagem}`);
 
-    // Chamada à API da OpenAI
+    // Consulta ao ChatGPT
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -44,7 +42,7 @@ app.post('/webhook', async (req, res) => {
 
     const respostaTexto = openaiResponse.data.choices[0].message.content.trim();
 
-    // Envia resposta pela API da Umbler
+    // Envio da resposta via Umbler
     await axios.post(
       'https://app-utalk.umbler.com/api/v1/messages/simplified/',
       {
@@ -63,7 +61,7 @@ app.post('/webhook', async (req, res) => {
 
     console.log(`[Webhook] Resposta enviada para ${numero}: ${respostaTexto}`);
 
-    // Retorna JSON válido para a Umbler
+    // Retorno esperado para a Umbler
     res.status(200).json({ reply: respostaTexto });
 
   } catch (err) {
